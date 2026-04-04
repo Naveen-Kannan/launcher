@@ -3,22 +3,31 @@ import Foundation
 import os.log
 
 private let log = Logger(subsystem: "com.nkannan.launcher", category: "launcher")
+private let tunesControlBaseURL = URL(string: "http://127.0.0.1:47631")!
 
 enum AppLauncher {
     static func open(_ target: AppTarget) {
+        open(target, activates: true)
+    }
+
+    static func open(_ target: AppTarget, activates: Bool) {
         guard let url = resolveURL(for: target) else {
             log.error("app not found: \(target.command, privacy: .public)")
             return
         }
 
         let config = NSWorkspace.OpenConfiguration()
-        config.activates = true
+        config.activates = activates
 
         NSWorkspace.shared.openApplication(at: url, configuration: config) { _, error in
             if let error {
                 log.error("failed to open \(target.command, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
         }
+    }
+
+    static func controlTunes(_ action: TunesAction) {
+        sendTunesControl(action, logFailures: true) { _ in }
     }
 
     private static func resolveURL(for target: AppTarget) -> URL? {
@@ -31,6 +40,37 @@ enum AppLauncher {
             return nil
         }
         return FileManager.default.fileExists(atPath: fallbackPath) ? URL(fileURLWithPath: fallbackPath) : nil
+    }
+
+    private static func sendTunesControl(
+        _ action: TunesAction,
+        logFailures: Bool = false,
+        completion: @escaping (Bool) -> Void
+    ) {
+        let url = tunesControlBaseURL.appending(path: "control").appending(path: action.path)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 0.4
+
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error {
+                if logFailures {
+                    log.error("tunes control failed for \(action.command, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                }
+                completion(false)
+                return
+            }
+
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                if logFailures {
+                    log.error("tunes control rejected for \(action.command, privacy: .public)")
+                }
+                completion(false)
+                return
+            }
+
+            completion(true)
+        }.resume()
     }
 }
 
@@ -94,5 +134,27 @@ struct AppTarget {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
+    }
+}
+
+enum TunesAction {
+    case playPause
+    case next
+    case previous
+
+    var command: String {
+        switch self {
+        case .playPause: "tunes.play_pause"
+        case .next: "tunes.next"
+        case .previous: "tunes.previous"
+        }
+    }
+
+    var path: String {
+        switch self {
+        case .playPause: "play_pause"
+        case .next: "next"
+        case .previous: "previous"
+        }
     }
 }

@@ -10,6 +10,9 @@ public struct LauncherCommands {
         AppTarget.cursor.command: { AppLauncher.open(.cursor) },
         AppTarget.antigravity.command: { AppLauncher.open(.antigravity) },
         AppTarget.tunes.command: { AppLauncher.open(.tunes) },
+        TunesAction.playPause.command: { AppLauncher.controlTunes(.playPause) },
+        TunesAction.next.command: { AppLauncher.controlTunes(.next) },
+        TunesAction.previous.command: { AppLauncher.controlTunes(.previous) },
     ]
 
     public init() {}
