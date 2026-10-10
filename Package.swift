@@ -14,5 +14,6 @@ let package = Package(
         .target(
             name: "Launcher"
         ),
+        .testTarget(name: "LauncherTests", dependencies: ["Launcher"]),
     ]
 )

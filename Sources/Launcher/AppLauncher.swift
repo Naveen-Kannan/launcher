@@ -27,7 +27,20 @@ enum AppLauncher {
     }
 
     static func controlTunes(_ action: TunesAction) {
-        sendTunesControl(action, logFailures: true) { _ in }
+        let url = tunesControlBaseURL.appending(path: "control").appending(path: action.path)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 0.4
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error {
+                log.error("tunes control failed for \(action.command, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                return
+            }
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                log.error("tunes control rejected for \(action.command, privacy: .public)")
+                return
+            }
+        }.resume()
     }
 
     private static func resolveURL(for target: AppTarget) -> URL? {
@@ -42,36 +55,7 @@ enum AppLauncher {
         return FileManager.default.fileExists(atPath: fallbackPath) ? URL(fileURLWithPath: fallbackPath) : nil
     }
 
-    private static func sendTunesControl(
-        _ action: TunesAction,
-        logFailures: Bool = false,
-        completion: @escaping (Bool) -> Void
-    ) {
-        let url = tunesControlBaseURL.appending(path: "control").appending(path: action.path)
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 0.4
 
-        URLSession.shared.dataTask(with: request) { _, response, error in
-            if let error {
-                if logFailures {
-                    log.error("tunes control failed for \(action.command, privacy: .public): \(error.localizedDescription, privacy: .public)")
-                }
-                completion(false)
-                return
-            }
-
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-                if logFailures {
-                    log.error("tunes control rejected for \(action.command, privacy: .public)")
-                }
-                completion(false)
-                return
-            }
-
-            completion(true)
-        }.resume()
-    }
 }
 
 struct AppTarget {
@@ -136,17 +120,8 @@ struct AppTarget {
     static let tunes = AppTarget(
         command: "app.tunes",
         bundleIdentifier: "com.electrontunes.app",
-        fallbackPath: workspaceRoot()
-            .appendingPathComponent("tunes/electron-tunes/dist/mac-arm64/Electron Tunes.app")
-            .path
+        fallbackPath: "/Applications/Electron Tunes.app"
     )
-
-    private static func workspaceRoot(file: String = #filePath) -> URL {
-        URL(fileURLWithPath: file)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-    }
 }
 
 enum TunesAction {

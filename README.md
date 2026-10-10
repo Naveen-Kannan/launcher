@@ -59,3 +59,7 @@ To wire up sample bindings, add entries like these to `~/.config/hkd/config.json
 
 `tunes` first resolves by bundle identifier, then falls back to the sibling repo build output at
 `../tunes/electron-tunes/dist/mac-arm64/Electron Tunes.app`.
+
+Tunes resolves by bundle ID first and uses `/Applications/Electron Tunes.app` as its
+fallback. A fallback must reference the installed app, rather than a build-time source
+checkout. Run `swift test` for the target regression check.
