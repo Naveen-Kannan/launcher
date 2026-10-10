@@ -8,6 +8,8 @@ public struct LauncherCommands {
         AppTarget.messages.command: { AppLauncher.open(.messages) },
         AppTarget.notes.command: { AppLauncher.open(.notes) },
         AppTarget.cursor.command: { AppLauncher.open(.cursor) },
+        AppTarget.codex.command: { AppLauncher.open(.codex) },
+        AppTarget.muse.command: { AppLauncher.open(.muse) },
         AppTarget.antigravity.command: { AppLauncher.open(.antigravity) },
         AppTarget.tunes.command: { AppLauncher.open(.tunes) },
         TunesAction.playPause.command: { AppLauncher.controlTunes(.playPause) },

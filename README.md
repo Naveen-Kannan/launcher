@@ -16,6 +16,8 @@ into `hkd`, which already owns hotkeys, IPC, config reload, and permissions.
 | `app.messages` | Activate Messages |
 | `app.notes` | Activate Notes |
 | `app.cursor` | Activate Cursor |
+| `app.codex` | Activate Codex |
+| `app.muse` | Activate Muse |
 | `app.antigravity` | Activate Antigravity |
 | `app.tunes` | Activate tunes |
 | `tunes.play_pause` | Send play/pause to tunes |
@@ -36,7 +38,8 @@ To wire up sample bindings, add entries like these to `~/.config/hkd/config.json
     { "trigger": "ctrl+cmd+o", "on_press": "app.outlook" },
     { "trigger": "ctrl+cmd+m", "on_press": "app.messages" },
     { "trigger": "ctrl+cmd+n", "on_press": "app.notes" },
-    { "trigger": "ctrl+cmd+c", "on_press": "app.cursor" },
+    { "trigger": "ctrl+cmd+c", "on_press": "app.codex" },
+    { "trigger": "ctrl+cmd+s", "on_press": "app.muse" },
     { "trigger": "ctrl+cmd+a", "on_press": "app.antigravity" },
     { "trigger": "ctrl+cmd+u", "on_press": "app.tunes" },
     { "trigger": "ctrl+cmd+space", "on_press": "tunes.play_pause" },

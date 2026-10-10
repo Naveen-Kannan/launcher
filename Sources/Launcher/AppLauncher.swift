@@ -115,6 +115,18 @@ struct AppTarget {
         fallbackPath: "/Applications/Cursor.app"
     )
 
+    static let codex = AppTarget(
+        command: "app.codex",
+        bundleIdentifier: "com.openai.codex",
+        fallbackPath: "/Applications/ChatGPT.app"
+    )
+
+    static let muse = AppTarget(
+        command: "app.muse",
+        bundleIdentifier: "com.meta.endo",
+        fallbackPath: "/Applications/Muse.app"
+    )
+
     static let antigravity = AppTarget(
         command: "app.antigravity",
         bundleIdentifier: "com.google.antigravity",
