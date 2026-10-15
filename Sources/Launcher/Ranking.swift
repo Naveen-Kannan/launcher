@@ -3,16 +3,28 @@ import Foundation
 // Tiers: exact > prefix > word start > initials ("vsc") > scattered letters.
 // Inside a tier: shorter/earlier wins; scattered matches earn word-start and run bonuses, lose on gaps.
 enum Fuzzy {
-    static func score(_ query: String, _ name: String) -> Int? {
-        let orig = Array(name), c = orig.map { Character($0.lowercased()) }, q = Array(query.lowercased())
+    struct Key {
+        let lower: [Character], starts: [Int], initials: [Character], startSet: Set<Int>
+        init(_ name: String) {
+            let orig = Array(name), low = orig.map { Character($0.lowercased()) }, st = Fuzzy.wordStarts(orig)
+            lower = low
+            starts = st
+            initials = st.map { low[$0] }
+            startSet = Set(st)
+        }
+    }
+
+    static func score(_ query: String, _ name: String) -> Int? { score(Array(query.lowercased()), Key(name)) }
+
+    static func score(_ q: [Character], _ k: Key) -> Int? {
+        let c = k.lower
         guard !q.isEmpty else { return 0 }
         guard q.count <= c.count else { return nil }
         if q == c { return 5000 }
         if c.starts(with: q) { return 4000 - (c.count - q.count) }
-        let starts = wordStarts(orig)
-        if let s = starts.first(where: { c[$0...].starts(with: q) }) { return 3000 - s }
-        if starts.map({ c[$0] }).starts(with: q) { return 2500 - starts.count }
-        return scattered(q, c, Set(starts))
+        if let s = k.starts.first(where: { c[$0...].starts(with: q) }) { return 3000 - s }
+        if k.initials.starts(with: q) { return 2500 - k.starts.count }
+        return scattered(q, c, k.startSet)
     }
 
     // Word starts: index 0, after separators, lower->Upper (camelCase), letter->digit.
@@ -98,10 +110,14 @@ enum Ranking {
         if q.isEmpty {
             return Array(apps.filter { f.boost($0.id, now: now) > 0.05 }.sorted { f.boost($0.id, now: now) > f.boost($1.id, now: now) }.prefix(limit))
         }
-        let pick = f.remembered(q)
+        let pick = f.remembered(q), chars = Array(q.lowercased())
         var scored: [(AppEntry, Double)] = []
         for a in apps {
-            let best = ([a.name].compactMap { Fuzzy.score(q, $0) } + a.alt.compactMap { Fuzzy.score(q, $0).map { $0 - 50 } }).max()
+            var best: Int?
+            for (i, k) in a.keys.enumerated() {
+                guard let s = Fuzzy.score(chars, k) else { continue }
+                best = max(best ?? .min, i == 0 ? s : s - 50)  // alt names rank just below the primary
+            }
             guard let s = best else { continue }
             scored.append((a, Double(s) + min(400, f.boost(a.id, now: now) * 40) + (a.id == pick ? 3000 : 0)))
         }

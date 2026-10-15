@@ -5,6 +5,17 @@ struct AppEntry: Equatable {
     let name: String      // localized display name
     let alt: [String]     // file name / CFBundleName when they differ
     let url: URL
+    let keys: [Fuzzy.Key] // name then alt, prepared once (not per keystroke)
+
+    init(id: String, name: String, alt: [String], url: URL) {
+        self.id = id
+        self.name = name
+        self.alt = alt
+        self.url = url
+        keys = ([name] + alt).map(Fuzzy.Key.init)
+    }
+
+    static func == (a: AppEntry, b: AppEntry) -> Bool { a.id == b.id && a.name == b.name && a.alt == b.alt && a.url == b.url }
 }
 
 // Own app list: Spotlight's index is shared with every file and goes stale or empty.

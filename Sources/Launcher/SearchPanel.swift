@@ -22,9 +22,30 @@ final class SearchPanel: NSObject, NSTextFieldDelegate, NSWindowDelegate {
 
     func toggle() { panel?.isVisible == true ? hide() : show() }
 
+    // At hkd launch: index apps, build the panel (~150 ms of AppKit setup), then preload icons
+    // off the main thread (~6 ms each the first time), so typing never waits on either.
     func warm() {
-        index.onChange = { [weak self] in if self?.panel?.isVisible == true { self?.update() } }
+        guard !index.started else { return }
+        index.onChange = { [weak self] in
+            guard let self else { return }
+            if self.panel?.isVisible == true { self.update() }
+            self.preloadIcons()
+        }
         index.start()
+        let p = panel ?? build()
+        p.alphaValue = 0  // one invisible on-screen pass so the first real show skips first-render cost
+        p.orderFrontRegardless()
+        p.contentView?.displayIfNeeded()
+        DispatchQueue.main.async { p.orderOut(nil); p.alphaValue = 1 }
+    }
+
+    private func preloadIcons() {
+        let missing = index.apps.filter { icons[$0.id] == nil }
+        guard !missing.isEmpty else { return }
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let loaded = missing.map { ($0.id, NSWorkspace.shared.icon(forFile: $0.url.path)) }
+            DispatchQueue.main.async { loaded.forEach { self?.icons[$0.0] = $0.1 } }
+        }
     }
 
     func show() {
