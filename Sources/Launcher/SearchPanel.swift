@@ -127,6 +127,7 @@ final class SearchPanel: NSObject, NSTextFieldDelegate, NSWindowDelegate {
         p.hasShadow = true
         p.hidesOnDeactivate = false
         p.isReleasedWhenClosed = false
+        p.animationBehavior = .none  // appear instantly, no window-appear animation
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         p.delegate = self
         p.onKey = { [weak self] e in self?.keyEquivalent(e) ?? false }
