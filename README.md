@@ -23,6 +23,7 @@ into `hkd`, which already owns hotkeys, IPC, config reload, and permissions.
 | `tunes.play_pause` | Send play/pause to tunes |
 | `tunes.next` | Send next-track to tunes |
 | `tunes.previous` | Send previous-track to tunes |
+| `app.search` | Toggle the app search panel (Spotlight replacement for apps) |
 
 ## Integration
 
@@ -63,3 +64,16 @@ To wire up sample bindings, add entries like these to `~/.config/hkd/config.json
 Tunes resolves by bundle ID first and uses `/Applications/Electron Tunes.app` as its
 fallback. A fallback must reference the installed app, rather than a build-time source
 checkout. Run `swift test` for the target regression check.
+
+## App search
+
+`app.search` replaces Spotlight for opening apps. Spotlight's app results come from the same index as every file, so they show up late, mix with files and web results, and disappear when the index rebuilds.
+
+- **Own index.** Scans `/Applications` (and one folder level below it), `/System/Applications`, CoreServices, the Safari cryptex and `~/Applications`, and watches those folders. Rebuilt in the background on change. No Spotlight involved.
+- **Ranking** in tiers: exact, then prefix, then word start (`code` → Visual Studio Code), then initials (`vsc`), then scattered letters. Within a tier, frecency breaks ties (10-day half-life). The last app you picked for a typed prefix ranks first next time, so `s` → Safari once you've picked it.
+- **Panel.** Non-activating, built on first use and then only shown and hidden. ↑↓ / ⌃N⌃P / Tab to move, Return to open, ⌘1–9 to open by position, ⌘Return to reveal in Finder, Esc or click away to close. An empty query lists your most-used apps.
+- **State.** `~/Library/Application Support/launcher/frecency.json` stores bundle IDs, counts, and prefix → bundle ID.
+
+hkd should call `LauncherCommands().start()` at launch so the index is built before the first search. Bind it with `{ "trigger": "cmd+space", "on_press": "app.search" }` after turning off Spotlight's shortcut (System Settings › Keyboard › Keyboard Shortcuts › Spotlight).
+
+Nuance: this gives hkd a real (lazy) window. The panel becomes key without activating any app, and focus returns to the app underneath on close.

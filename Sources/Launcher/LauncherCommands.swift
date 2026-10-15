@@ -15,7 +15,11 @@ public struct LauncherCommands {
         TunesAction.playPause.command: { AppLauncher.controlTunes(.playPause) },
         TunesAction.next.command: { AppLauncher.controlTunes(.next) },
         TunesAction.previous.command: { AppLauncher.controlTunes(.previous) },
+        "app.search": { SearchPanel.shared.toggle() },
     ]
 
     public init() {}
+
+    // Builds the app-search index in the background so the first app.search is instant.
+    public func start() { SearchPanel.shared.warm() }
 }
