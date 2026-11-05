@@ -20,12 +20,20 @@ final class SearchPanel: NSObject, NSTextFieldDelegate, NSWindowDelegate {
     private var selected = 0
     private var top: CGFloat = 0
 
+    private var clickMonitor: Any?
+    private var appObserver: NSObjectProtocol?
+
     func toggle() { panel?.isVisible == true ? hide() : show() }
 
     // At hkd launch: index apps, build the panel (~150 ms of AppKit setup), then preload icons
     // off the main thread (~6 ms each the first time), so typing never waits on either.
     func warm() {
         guard !index.started else { return }
+        // hkd starts as `.prohibited`, which can never own a key window: the panel then only sometimes
+        // takes keyboard focus (keys go to the app underneath, e.g. Messages) and never gets
+        // windowDidResignKey (so clicking away doesn't dismiss it). `.accessory` still has no Dock
+        // icon or menu bar, but lets a non-activating panel become key reliably.
+        if NSApp.activationPolicy() != .accessory { NSApp.setActivationPolicy(.accessory) }
         index.onChange = { [weak self] in
             guard let self else { return }
             if self.panel?.isVisible == true { self.update() }
@@ -36,7 +44,10 @@ final class SearchPanel: NSObject, NSTextFieldDelegate, NSWindowDelegate {
         p.alphaValue = 0  // one invisible on-screen pass so the first real show skips first-render cost
         p.orderFrontRegardless()
         p.contentView?.displayIfNeeded()
-        DispatchQueue.main.async { p.orderOut(nil); p.alphaValue = 1 }
+        DispatchQueue.main.async {
+            // A fast first toggle can show the panel (alpha already 1) before this runs; don't hide that.
+            if p.alphaValue == 0 { p.orderOut(nil); p.alphaValue = 1 }
+        }
     }
 
     private func preloadIcons() {
@@ -55,16 +66,42 @@ final class SearchPanel: NSObject, NSTextFieldDelegate, NSWindowDelegate {
         let vf = screen.visibleFrame
         top = vf.maxY - vf.height * 0.18
         p.setFrameOrigin(NSPoint(x: vf.midX - SearchPanel.width / 2, y: top - SearchPanel.fieldH))
+        p.alphaValue = 1
         field.stringValue = ""
         update()
         p.makeKeyAndOrderFront(nil)
         p.makeFirstResponder(field)
+        startDismissMonitors()
+        if !p.isKeyWindow { searchLog.error("panel did not become key window") }
     }
 
-    func hide() {
+    // `restoreFocus` only for Esc/toggle. Click-away, app switches and opening an app must NOT
+    // deactivate us: the user (or the app being opened) has already chosen where focus goes, and
+    // NSApp.deactivate() would race with that and steal it back.
+    func hide(restoreFocus: Bool = true) {
+        stopDismissMonitors()
         guard panel?.isVisible == true else { return }
         panel?.orderOut(nil)
-        NSApp.deactivate()  // hand keyboard focus back to the app underneath
+        if restoreFocus, NSApp.isActive { NSApp.deactivate() }
+    }
+
+    // Dismiss on anything that moves focus elsewhere, even if the panel never got a resign-key callback.
+    private func startDismissMonitors() {
+        stopDismissMonitors()
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] _ in
+            self?.hide(restoreFocus: false)  // global monitors only see clicks outside our windows
+        }
+        appObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            if app?.processIdentifier != ProcessInfo.processInfo.processIdentifier { self?.hide(restoreFocus: false) }
+        }
+    }
+
+    private func stopDismissMonitors() {
+        if let m = clickMonitor { NSEvent.removeMonitor(m); clickMonitor = nil }
+        if let o = appObserver { NSWorkspace.shared.notificationCenter.removeObserver(o); appObserver = nil }
     }
 
     // MARK: results
@@ -85,7 +122,7 @@ final class SearchPanel: NSObject, NSTextFieldDelegate, NSWindowDelegate {
         guard results.indices.contains(i) else { return }
         let a = results[i]
         frecency.record(a.id, query: field.stringValue)
-        panel?.orderOut(nil)
+        hide(restoreFocus: false)
         if reveal { return NSWorkspace.shared.activateFileViewerSelecting([a.url]) }
         let cfg = NSWorkspace.OpenConfiguration()
         cfg.activates = true
@@ -179,7 +216,7 @@ final class SearchPanel: NSObject, NSTextFieldDelegate, NSWindowDelegate {
         return false
     }
 
-    func windowDidResignKey(_ n: Notification) { hide() }
+    func windowDidResignKey(_ n: Notification) { hide(restoreFocus: false) }
 }
 
 final class KeyPanel: NSPanel {
