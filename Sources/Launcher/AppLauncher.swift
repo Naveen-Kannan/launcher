@@ -111,6 +111,12 @@ struct AppTarget {
         fallbackPath: "/Applications/Muse.app"
     )
 
+    static let claude = AppTarget(
+        command: "app.claude",
+        bundleIdentifier: "com.anthropic.claudefordesktop",
+        fallbackPath: "/Applications/Claude.app"
+    )
+
     static let antigravity = AppTarget(
         command: "app.antigravity",
         bundleIdentifier: "com.google.antigravity",

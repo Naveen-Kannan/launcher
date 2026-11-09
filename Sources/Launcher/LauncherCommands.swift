@@ -11,6 +11,7 @@ public struct LauncherCommands {
         AppTarget.codex.command: { AppLauncher.open(.codex) },
         AppTarget.muse.command: { AppLauncher.open(.muse) },
         AppTarget.antigravity.command: { AppLauncher.open(.antigravity) },
+        AppTarget.claude.command: { AppLauncher.open(.claude) },
         AppTarget.tunes.command: { AppLauncher.open(.tunes) },
         TunesAction.playPause.command: { AppLauncher.controlTunes(.playPause) },
         TunesAction.next.command: { AppLauncher.controlTunes(.next) },

@@ -19,6 +19,7 @@ into `hkd`, which already owns hotkeys, IPC, config reload, and permissions.
 | `app.codex` | Activate Codex |
 | `app.muse` | Activate Muse |
 | `app.antigravity` | Activate Antigravity |
+| `app.claude` | Activate Claude |
 | `app.tunes` | Activate tunes |
 | `tunes.play_pause` | Send play/pause to tunes |
 | `tunes.next` | Send next-track to tunes |
@@ -42,6 +43,7 @@ To wire up sample bindings, add entries like these to `~/.config/hkd/config.json
     { "trigger": "ctrl+cmd+c", "on_press": "app.codex" },
     { "trigger": "ctrl+cmd+s", "on_press": "app.muse" },
     { "trigger": "ctrl+cmd+a", "on_press": "app.antigravity" },
+    { "trigger": "ctrl+cmd+w", "on_press": "app.claude" },
     { "trigger": "ctrl+cmd+u", "on_press": "app.tunes" },
     { "trigger": "ctrl+cmd+space", "on_press": "tunes.play_pause" },
     { "trigger": "ctrl+cmd+right", "on_press": "tunes.next" },
